@@ -19,7 +19,7 @@ from llm.base import get_llm
 from core.ask import answer_stream
 from retrieval.retriever import search
 
-_EVAL_PROMPT = """你是红楼梦评测专家。请对以下问答进行评分。
+_EVAL_PROMPT = """你是古典文学评测专家。请对以下问答进行评分。
 
 【问题】{question}
 

@@ -92,7 +92,7 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "80"))
 # ── 项目标识 ──────────────────────────────────────────────
 # 用在页面标题、启动横幅、prompt 等领域提示中。
 # 换文档时只改这两个值即可切换领域（前提：KG schema 也同步更新）。
-PROJECT_NAME = os.getenv("PROJECT_NAME", "红楼梦问答")
+PROJECT_NAME = os.getenv("PROJECT_NAME", "四大名著知识问答")
 PROJECT_DOMAIN = os.getenv("PROJECT_DOMAIN", "红楼梦")
 
 # ── 运行时领域切换（支持前端书籍选择）─────────────────────

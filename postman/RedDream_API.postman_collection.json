@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "RedDream API 测试集合",
-    "description": "红楼梦企业级问答系统 · 全接口测试集合\n\n包含：\n- 基础接口（健康检查、配置、领域列表）\n- 核心接口（问答、SSE 流式、Agent 模式）\n- 管理后台（检索配置、日志查询、CSV 导出）\n- 图谱探索（关系图、路径搜索、邻居网络）\n- 认证接口（注册、登录、用户信息）\n\n使用方法：\n1. 启动 RedDream：cd E:\\ReshapingMyself\\projects\\RedDream && uvicorn web.server:app --host 127.0.0.1 --port 7860\n2. 导入此集合到 Postman\n3. 设置 baseUrl 变量为 http://127.0.0.1:7860\n4. 按文件夹顺序执行\n\n注意：\n- 问答接口返回 SSE 流（text/event-stream），Postman 会逐行显示\n- 管理后台接口需要 ADMIN_TOKEN，在 Authorization tab 选 Bearer Token",
+    "description": "四大名著知识图谱与智能问答系统 · 全接口测试集合\n\n包含：\n- 基础接口（健康检查、配置、领域列表）\n- 核心接口（问答、SSE 流式、Agent 模式）\n- 管理后台（检索配置、日志查询、CSV 导出）\n- 图谱探索（关系图、路径搜索、邻居网络）\n- 认证接口（注册、登录、用户信息）\n\n使用方法：\n1. 启动 RedDream：cd E:\\ReshapingMyself\\projects\\RedDream && uvicorn web.server:app --host 127.0.0.1 --port 7860\n2. 导入此集合到 Postman\n3. 设置 baseUrl 变量为 http://127.0.0.1:7860\n4. 按文件夹顺序执行\n\n注意：\n- 问答接口返回 SSE 流（text/event-stream），Postman 会逐行显示\n- 管理后台接口需要 ADMIN_TOKEN，在 Authorization tab 选 Bearer Token",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [

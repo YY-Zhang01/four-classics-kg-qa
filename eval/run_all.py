@@ -19,7 +19,7 @@ def main():
     gen_limit = int(sys.argv[2]) if len(sys.argv) > 2 else 5
 
     print("=" * 60)
-    print(f"  红楼梦问答系统 · 评测报告")
+    print(f"  四大名著知识问答系统 · 评测报告")
     print(f"  时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 60)
 
