@@ -16,6 +16,23 @@ def _table_for(target_type: str) -> str:
     return {"chunk": "chunks", "kg_triple": "kg_triples", "wiki_page": "wiki_pages"}[target_type]
 
 
+# 允许 revise 直接修改的列（白名单）。
+# 杜绝 SQL 注入 / 越权改 id、review_status 等受控字段。
+_EDITABLE_COLUMNS: dict[str, frozenset[str]] = {
+    "chunk": frozenset({
+        "source", "chapter", "body", "page_no", "paragraph_no",
+        "content_hash", "source_url",
+    }),
+    "kg_triple": frozenset({
+        "subject", "relation", "object", "source",
+        "confidence", "source_chunk_id", "extract_method",
+    }),
+    "wiki_page": frozenset({
+        "page_type", "title", "domain", "content", "entities", "confidence",
+    }),
+}
+
+
 def _write_log(
     target_type: str,
     target_id: str,
@@ -124,8 +141,16 @@ def revise(
     Args:
         updates: 要更新的字段，如 {"body": "修正后的文本"} 或 {"object": "正确值"}
     """
-    if target_type not in ("chunk", "kg_triple", "wiki_page"):
+    if target_type not in _EDITABLE_COLUMNS:
         raise ValueError(f"未知目标类型: {target_type}")
+    if not updates:
+        raise ValueError("updates 不能为空")
+
+    # 列名白名单校验：只允许修改内容字段，杜绝 SQL 注入 / 越权改 id、review_status 等
+    allowed = _EDITABLE_COLUMNS[target_type]
+    bad = sorted(str(c) for c in updates if c not in allowed)
+    if bad:
+        raise ValueError(f"不允许修改的字段: {', '.join(bad)}")
 
     table = _table_for(target_type)
 
@@ -140,19 +165,19 @@ def revise(
             return False
         old_status = row[0]
 
-        # 构建 SET 子句
-        set_parts = []
-        values = []
+        # 构建 SET 子句（列名均来自白名单，安全；review_status 一并改为待复审）
+        set_parts = ["review_status = %s"]
+        values: list = [STATUS_NEEDS_REVISION]
         for col, val in updates.items():
             set_parts.append(f"{col} = %s")
             values.append(val)
         values.append(int(target_id) if target_type != "chunk" else target_id)
 
-        if set_parts:
-            cur.execute(
-                f"UPDATE {table} SET {', '.join(set_parts)} WHERE id = %s",
-                values,
-            )
+        cur.execute(
+            f"UPDATE {table} SET {', '.join(set_parts)} WHERE id = %s",
+            values,
+        )
+        conn.commit()
 
     _write_log(
         target_type, target_id, "revised", reviewer=reviewer,

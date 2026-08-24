@@ -20,6 +20,11 @@ CREATE TABLE IF NOT EXISTS public.kg_triples (
     relation  TEXT NOT NULL,
     object    TEXT NOT NULL,
     source    VARCHAR(50),
+    domain    VARCHAR(50),
+    confidence      REAL DEFAULT 0.0,
+    source_chunk_id TEXT,
+    review_status   VARCHAR(20) DEFAULT 'pending',
+    extract_method  VARCHAR(20) DEFAULT 'llm',
     UNIQUE(subject, relation, object)
 );
 """

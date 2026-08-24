@@ -31,6 +31,7 @@ from config.settings import (
     get_top_k, set_top_k,
     get_active_domain, get_active_name, switch_domain,
     get_admin_domain, get_admin_name, switch_admin_domain,
+    validate_domain,
     llm_config, LOG_DIR, CONFIG_DIR,
     PROJECT_NAME, PROJECT_DOMAIN,
 )
@@ -617,9 +618,10 @@ async def switch_domain_public(request: Request):
     切换完成后前端刷新页面即可加载新书。
     """
     body = await request.json()
-    domain = body.get("domain", "").strip()
-    if not domain:
-        return {"ok": False, "error": "domain 不能为空"}
+    try:
+        domain = validate_domain(body.get("domain", ""))
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
 
     # 验证 domain 有效：先查 entities_{domain}.json，再回退 entities.json
     entity_path = CONFIG_DIR / f"entities_{domain}.json"
@@ -665,9 +667,10 @@ def admin_get_domain():
 async def admin_switch_domain(request: Request):
     """管理后台切换书籍（不影响用户端状态）。"""
     body = await request.json()
-    domain = body.get("domain", "").strip()
-    if not domain:
-        return {"ok": False, "error": "domain 不能为空"}
+    try:
+        domain = validate_domain(body.get("domain", ""))
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
 
     # 验证 domain 有效
     entity_path = CONFIG_DIR / f"entities_{domain}.json"

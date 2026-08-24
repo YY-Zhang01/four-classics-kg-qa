@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -125,6 +126,24 @@ def get_admin_domain() -> str:
 def get_admin_name() -> str:
     """管理端当前生效的项目名称。"""
     return _admin_active_name
+
+
+# 领域标识合法字符：字母/数字/下划线 + 中文 + 中点/连字符
+_DOMAIN_RE = re.compile(r"^[\w\u4e00-\u9fff·-]{1,50}$")
+
+
+def validate_domain(domain: str) -> str:
+    """校验领域标识，防止路径穿越（../、\\ 等）。
+
+    领域名只允许字母数字下划线、中文、· 和 -，长度 1-50。
+    返回清理后的字符串；非法时抛 ValueError。
+    """
+    domain = (domain or "").strip()
+    if not domain:
+        raise ValueError("domain 不能为空")
+    if not _DOMAIN_RE.fullmatch(domain):
+        raise ValueError("domain 含非法字符（仅允许中英文/数字/下划线/·/-）")
+    return domain
 
 
 def _load_domain_info(domain: str) -> dict:
