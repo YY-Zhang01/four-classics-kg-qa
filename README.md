@@ -165,6 +165,8 @@ python -m web.server
 
 ## 七、测试与评测
 
+`tests/` 分两类：`test_api_*.py`（API 契约，外部依赖 mock）+ `test_unit_real.py`（auth / kg.store / search 的真实单测，不 mock 被测逻辑）。
+
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests/ -q     # 单元 / 接口测试
 python -m eval.run_all 5                           # 检索评测(Recall@5/MRR) + 生成评测

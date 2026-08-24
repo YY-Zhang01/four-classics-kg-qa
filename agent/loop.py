@@ -102,8 +102,6 @@ def agent_ask(question: str, history: list[dict] | None = None) -> Iterator[str]
         messages += history
     messages.append({"role": "user", "content": question})
 
-    tool_results: list[str] = []
-
     for iteration in range(_MAX_ITERATIONS):
         # LLM 思考
         raw = llm.chat(messages)
@@ -131,7 +129,6 @@ def agent_ask(question: str, history: list[dict] | None = None) -> Iterator[str]
             except Exception as e:
                 result = f"工具执行失败：{e}"
 
-        tool_results.append(f"[{tool_name}] {result[:200]}")
         yield sse_text(f"[调用工具 {tool_name}]")
 
         # 把工具结果塞回对话

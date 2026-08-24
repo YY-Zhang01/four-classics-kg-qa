@@ -1,6 +1,7 @@
 """用户认证模块：注册、登录、JWT 验证。"""
 from __future__ import annotations
 
+import logging
 import os
 import hashlib
 import re
@@ -15,7 +16,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from retrieval.db import get_conn
 
 # ── JWT 配置 ──────────────────────────────────────────────────────────────────
-JWT_SECRET = os.getenv("JWT_SECRET", secrets.token_urlsafe(32))
+_logger = logging.getLogger(__name__)
+
+JWT_SECRET = os.getenv("JWT_SECRET", "")
+if not JWT_SECRET:
+    JWT_SECRET = secrets.token_urlsafe(32)
+    _logger.warning(
+        "未设置 JWT_SECRET，已生成随机密钥（重启后 token 失效、多 worker 不一致）。建议在 .env 里配置 JWT_SECRET。"
+    )
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRES_HOURS = 24  # token 有效期 24 小时
 

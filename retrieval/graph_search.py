@@ -11,6 +11,19 @@ from kg.store import query_by_entity, query_relation
 
 # ── Neo4j 路径查询 ──────────────────────────────────────────
 
+def _clamp_depth(max_depth, default: int, lo: int, hi: int) -> int:
+    """把跳数夹取到安全整数范围，防止非法值拼进 Cypher。
+
+    Neo4j 的变长路径长度（[*1..n]）不支持参数化，只能字符串拼接，
+    因此这里必须把 n 严格限制为合法整数，作为最后一道防线。
+    """
+    try:
+        d = int(max_depth)
+    except (TypeError, ValueError):
+        d = default
+    return max(lo, min(d, hi))
+
+
 def find_paths(
     start_entity: str,
     end_entity: str,
@@ -29,6 +42,7 @@ def find_paths(
         路径列表，每条格式: {paths: [[{entity, relation}...]], length: N}
         Neo4j 不可用时回退到 PG 直接关系查询
     """
+    max_depth = _clamp_depth(max_depth, 3, 1, 5)
     if not is_available():
         return _pg_fallback_path(start_entity, end_entity)
 
@@ -51,7 +65,7 @@ def find_paths(
 
     paths = []
     for rec in records:
-        path_data = rec.get("p", rec.get("p"))
+        path_data = rec.get("p")
         length = rec.get("path_length", 0)
         if path_data:
             segments = _parse_path(path_data)
@@ -112,6 +126,7 @@ def expand_neighbors(
     Returns:
         {nodes: [{name, source}], edges: [{from, relation, to, confidence}]}
     """
+    max_depth = _clamp_depth(max_depth, 2, 1, 3)
     if not is_available():
         return _pg_fallback_neighbors(entity)
 

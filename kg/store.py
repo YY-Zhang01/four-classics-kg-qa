@@ -10,7 +10,6 @@ from pathlib import Path
 from retrieval.db import get_conn
 
 KG_DIR = Path(__file__).resolve().parent
-SCHEMA_SQL = KG_DIR / "schema.sql"
 TRIPLES_JSON = KG_DIR / "triples.json"
 
 CREATE_TABLE_SQL = """
@@ -44,10 +43,8 @@ def set_kg_domain(domain: str) -> None:
 
 
 def _domain_clause() -> str:
-    """返回 SQL WHERE 条件中按 source 过滤的片段。"""
-    if _active_kg_domain:
-        return "source = %s"
-    return "source IS NOT NULL OR TRUE"  # 不回退到全量，防止跨书污染
+    """返回 SQL WHERE 条件中按 source 过滤的片段（无领域时返回空串）。"""
+    return "source = %s" if _active_kg_domain else ""
 
 
 def _domain_param() -> tuple:
@@ -120,7 +117,7 @@ def query_by_entity(name: str, max_depth: int = 1) -> list[dict]:
     P4: 排除 review_status = 'rejected' 的已驳回三元组。
     返回格式：[{subject, relation, object, source, confidence, source_chunk_id}, ...]
     """
-    domain_clause = _domain_clause() if _active_kg_domain else ""
+    domain_clause = _domain_clause()
     review_filter = " AND (review_status IS NULL OR review_status != 'rejected')"
     with get_conn() as conn, conn.cursor() as cur:
         if domain_clause:
@@ -152,7 +149,7 @@ def query_relation(subj: str, obj: str) -> list[dict]:
     P0: 返回 confidence, source_chunk_id 证据信息。
     P4: 排除已驳回三元组。
     """
-    domain_clause = _domain_clause() if _active_kg_domain else ""
+    domain_clause = _domain_clause()
     review_filter = " AND (review_status IS NULL OR review_status != 'rejected')"
     with get_conn() as conn, conn.cursor() as cur:
         if domain_clause:
@@ -180,7 +177,7 @@ def query_relation(subj: str, obj: str) -> list[dict]:
 
 def count_triples() -> int:
     """三元组总数（按当前 domain 过滤）。"""
-    domain_clause = _domain_clause() if _active_kg_domain else ""
+    domain_clause = _domain_clause()
     with get_conn() as conn, conn.cursor() as cur:
         if domain_clause:
             cur.execute("SELECT count(*) FROM kg_triples WHERE " + domain_clause, _domain_param())

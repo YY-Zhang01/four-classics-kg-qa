@@ -10,8 +10,16 @@ from typing import Iterator
 from config.settings import PROMPT_DIR, PROJECT_DOMAIN
 from llm.base import get_llm
 
-_SYSTEM_PROMPT_RAW = (PROMPT_DIR / "qa_system_prompt.txt").read_text(encoding="utf-8")
-SYSTEM_PROMPT = _SYSTEM_PROMPT_RAW.replace("{domain}", PROJECT_DOMAIN)
+_SYSTEM_PROMPT_CACHE: str | None = None
+
+
+def _system_prompt() -> str:
+    """惰性读取系统提示词（避免导入期读文件，首次调用时加载并缓存）。"""
+    global _SYSTEM_PROMPT_CACHE
+    if _SYSTEM_PROMPT_CACHE is None:
+        raw = (PROMPT_DIR / "qa_system_prompt.txt").read_text(encoding="utf-8")
+        _SYSTEM_PROMPT_CACHE = raw.replace("{domain}", PROJECT_DOMAIN)
+    return _SYSTEM_PROMPT_CACHE
 
 NO_CONTEXT_ANSWER = "根据现有资料未找到相关内容。"
 
@@ -68,7 +76,7 @@ def build_messages(
         f"【问题】{question}\n\n"
         f"请依据以上参考资料回答，并在结论后标注【出处：来源·章节】。"
     )
-    messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages: list[dict] = [{"role": "system", "content": _system_prompt()}]
 
     # 插入最近 N 轮历史（截断过长内容，每段最多 300 字）
     if history:
