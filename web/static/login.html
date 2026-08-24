@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 · 经典问答系统</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #f7f3eb;
+    --paper-dark: #ede4d3;
+    --ink: #2c1810;
+    --ink-light: #5c4a3a;
+    --ink-muted: #9c8b7b;
+    --cinnabar: #bc3a2e;
+    --cinnabar-light: #d45347;
+    --gold: #b8935a;
+    --gold-light: #d4b87a;
+    --wood-dark: #3d1f0f;
+    --wood: #5c2e16;
+    --jade: #6b8e6b;
+    --border: #d9cdb3;
+    --border-light: #e8dfce;
+    --shadow-sm: 0 1px 4px rgba(44,24,16,0.06);
+    --shadow: 0 2px 12px rgba(44,24,16,0.08);
+    --shadow-lg: 0 4px 24px rgba(44,24,16,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: "Noto Serif SC", "STSong", "Songti SC", "SimSun", "PingFang SC", "Microsoft YaHei", serif;
+    background:
+      radial-gradient(ellipse 120% 180px at 15% 100%, rgba(80,60,40,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 90% 120px at 70% 100%, rgba(80,60,40,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 200px at 50% 30%, rgba(200,180,150,0.05) 0%, transparent 60%),
+      var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    position: relative; overflow: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139,115,85,0.015) 2px, rgba(139,115,85,0.015) 3px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(139,115,85,0.01) 2px, rgba(139,115,85,0.01) 3px);
+  }
+
+  /* ── 主卡片：卷轴样式 ── */
+  .login-card {
+    position: relative; z-index: 1;
+    width: 420px; max-width: 92vw;
+    background: linear-gradient(180deg, #fdfaf3 0%, #fefcf7 20%, #fefcf7 80%, #fdfaf3 100%);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    box-shadow:
+      0 1px 3px rgba(44,24,16,0.06),
+      inset 0 40px 30px -40px rgba(184,147,90,0.06),
+      inset 0 -40px 30px -40px rgba(184,147,90,0.06);
+    padding: 40px 44px 36px;
+  }
+  /* 卷轴杆 */
+  .login-card::before, .login-card::after {
+    content: ''; position: absolute; left: -8px; right: -8px; height: 10px;
+    background: linear-gradient(180deg, #8b6914, #b8935a, #d4b87a, #b8935a, #8b6914);
+    border-radius: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .login-card::before { top: -4px; }
+  .login-card::after { bottom: -4px; }
+
+  /* ── 标题 ── */
+  .card-header { text-align: center; margin-bottom: 32px; }
+  .card-header .seal {
+    width: 56px; height: 56px;
+    border: 3px solid var(--cinnabar);
+    border-radius: 50%;
+    color: var(--cinnabar);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: bold;
+    font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+    transform: rotate(-5deg);
+    box-shadow: 0 1px 4px rgba(188,58,46,0.2);
+    margin-bottom: 16px;
+  }
+  .card-header h2 {
+    font-family: "Noto Serif SC", "STKaiti", "KaiTi", serif;
+    font-size: 22px; letter-spacing: 6px;
+    color: var(--wood-dark); font-weight: 400;
+  }
+
+  /* ── 表单 ── */
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block; font-size: 13px; color: var(--ink-light);
+    margin-bottom: 6px; letter-spacing: 2px;
+  }
+  .form-group input {
+    width: 100%; padding: 12px 16px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    font-size: 15px; font-family: inherit; letter-spacing: 1px;
+    background: #fefcf7; outline: none; transition: all .25s;
+    box-shadow: inset 0 1px 3px rgba(44,24,16,0.04);
+  }
+  .form-group input:focus {
+    border-color: var(--cinnabar);
+    box-shadow: inset 0 1px 3px rgba(44,24,16,0.04), 0 0 0 3px rgba(188,58,46,0.08);
+  }
+  .form-group input::placeholder { color: var(--ink-muted); font-style: italic; }
+
+  /* ── 按钮 ── */
+  .btn-primary {
+    width: 100%; padding: 13px;
+    border: none; border-radius: var(--radius);
+    background: var(--cinnabar); color: #fff;
+    font-size: 16px; font-family: inherit; letter-spacing: 4px;
+    cursor: pointer; transition: all .2s;
+    box-shadow: 0 2px 8px rgba(188,58,46,0.25);
+    margin-top: 8px;
+  }
+  .btn-primary:hover {
+    background: var(--cinnabar-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(188,58,46,0.35);
+  }
+  .btn-primary:disabled { background: #c4a89c; box-shadow: none; cursor: not-allowed; transform: none; }
+
+  /* ── 切换链接 ── */
+  .switch-link {
+    text-align: center; margin-top: 22px; font-size: 13px; color: var(--ink-muted);
+    letter-spacing: 2px;
+  }
+  .switch-link a {
+    color: var(--cinnabar); text-decoration: none; cursor: pointer;
+    border-bottom: 1px dashed var(--cinnabar); padding-bottom: 1px;
+    transition: all .2s;
+  }
+  .switch-link a:hover { color: var(--cinnabar-light); border-bottom-style: solid; }
+
+  /* ── 提示 ── */
+  .error-msg {
+    text-align: center; font-size: 13px; color: var(--cinnabar);
+    margin-top: 14px; min-height: 20px; letter-spacing: 1px;
+  }
+  .success-msg {
+    text-align: center; font-size: 13px; color: var(--jade);
+    margin-top: 14px; min-height: 20px; letter-spacing: 1px;
+  }
+
+  /* ── 游客入口 ── */
+  .guest-entry {
+    text-align: center; margin-top: 18px; padding-top: 16px;
+    border-top: 1px dashed var(--border-light);
+  }
+  .guest-entry a {
+    font-size: 12px; color: var(--ink-muted); text-decoration: none;
+    letter-spacing: 2px; transition: color .2s;
+  }
+  .guest-entry a:hover { color: var(--ink-light); }
+
+  /* ── 花瓣 ── */
+  .petal {
+    position: fixed; z-index: 0; pointer-events: none;
+    animation: petalFall linear infinite; opacity: 0;
+  }
+  @keyframes petalFall {
+    0%   { transform: translateY(-20px) rotate(0deg) translateX(0); opacity: 0; }
+    5%   { opacity: 0.7; }
+    85%  { opacity: 0.5; }
+    100% { transform: translateY(105vh) rotate(540deg) translateX(60px); opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="card-header">
+    <div class="seal">红</div>
+    <h2 id="formTitle">登录系统</h2>
+  </div>
+
+  <!-- 登录表单 -->
+  <form id="loginForm">
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="loginUser" placeholder="请输入用户名" autocomplete="username" required minlength="2">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="loginPass" placeholder="请输入密码" autocomplete="current-password" required minlength="4">
+    </div>
+    <div class="error-msg" id="loginError"></div>
+    <button type="submit" class="btn-primary">登 录</button>
+  </form>
+
+  <!-- 注册表单（默认隐藏） -->
+  <form id="registerForm" style="display:none;">
+    <div class="form-group">
+      <label>用户名</label>
+      <input type="text" id="regUser" placeholder="请设置用户名" autocomplete="username" required minlength="2">
+    </div>
+    <div class="form-group">
+      <label>显示名（可选）</label>
+      <input type="text" id="regDisplayName" placeholder="选填，默认同用户名" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label>密码</label>
+      <input type="password" id="regPass" placeholder="至少 4 个字符" autocomplete="new-password" required minlength="4">
+    </div>
+    <div class="form-group">
+      <label>确认密码</label>
+      <input type="password" id="regPassConfirm" placeholder="再次输入密码" autocomplete="new-password" required minlength="4">
+    </div>
+    <div class="error-msg" id="regError"></div>
+    <div class="success-msg" id="regSuccess"></div>
+    <button type="submit" class="btn-primary">注 册</button>
+  </form>
+
+  <div class="switch-link">
+    <span id="switchText">还没有账号？</span>
+    <a id="switchLink" onclick="toggleMode()">立即注册</a>
+  </div>
+
+  <div class="guest-entry">
+    <a href="/">→ 以游客身份浏览</a>
+  </div>
+</div>
+
+<script>
+var isLogin = true;
+
+function toggleMode() {
+  isLogin = !isLogin;
+  document.getElementById('loginForm').style.display = isLogin ? '' : 'none';
+  document.getElementById('registerForm').style.display = isLogin ? 'none' : '';
+  document.getElementById('formTitle').textContent = isLogin ? '登录系统' : '注册账号';
+  document.getElementById('switchText').textContent = isLogin ? '还没有账号？' : '已有账号？';
+  document.getElementById('switchLink').textContent = isLogin ? '立即注册' : '去登录';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('regError').textContent = '';
+  document.getElementById('regSuccess').textContent = '';
+}
+
+// ── 登录 ──
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  var btn = this.querySelector('button');
+  btn.disabled = true;
+  btn.textContent = '登录中…';
+
+  try {
+    var resp = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        username: document.getElementById('loginUser').value.trim(),
+        password: document.getElementById('loginPass').value,
+      }),
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || '登录失败');
+    localStorage.setItem('rd_token', data.token);
+    localStorage.setItem('rd_user', JSON.stringify({
+      username: data.username,
+      user_id: data.user_id,
+      display_name: data.display_name,
+      role: data.role || 'user',
+    }));
+    // 管理员跳转后台，普通用户跳转问答界面
+    window.location.href = data.role === 'admin' ? '/admin' : '/dashboard';
+  } catch(err) {
+    errEl.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登 录';
+  }
+});
+
+// ── 注册 ──
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  var errEl = document.getElementById('regError');
+  var succEl = document.getElementById('regSuccess');
+  errEl.textContent = ''; succEl.textContent = '';
+
+  var pwd = document.getElementById('regPass').value;
+  var confirm = document.getElementById('regPassConfirm').value;
+  if (pwd !== confirm) { errEl.textContent = '两次输入的密码不一致'; return; }
+
+  var btn = this.querySelector('button');
+  btn.disabled = true;
+  btn.textContent = '注册中…';
+
+  try {
+    var resp = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        username: document.getElementById('regUser').value.trim(),
+        password: pwd,
+        display_name: document.getElementById('regDisplayName').value.trim(),
+      }),
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail || '注册失败');
+
+    // 注册成功 → 自动登录
+    localStorage.setItem('rd_token', data.token);
+    localStorage.setItem('rd_user', JSON.stringify({
+      username: data.username,
+      user_id: data.user_id,
+      display_name: data.display_name || data.username,
+      role: data.role || 'user',
+    }));
+    succEl.textContent = '注册成功，正在跳转…';
+    var dest = data.role === 'admin' ? '/admin' : '/dashboard';
+    setTimeout(function() { window.location.href = dest; }, 800);
+  } catch(err) {
+    errEl.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '注 册';
+  }
+});
+
+// ── 花瓣 ──
+(function(){
+  var petals = ['🌸','🌺','🏵','✿','❀','💮'];
+  var colors = ['#f0c0b0','#e8a0a0','#f5d0c0','#d09090','#f0b8b8'];
+  for (var i = 0; i < 8; i++) {
+    var p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = petals[i % petals.length];
+    p.style.cssText =
+      'left:' + (Math.random() * 90 + 5) + '%;' +
+      'font-size:' + (Math.random() * 8 + 10) + 'px;' +
+      'animation-duration:' + (Math.random() * 10 + 12) + 's;' +
+      'animation-delay:' + (Math.random() * 8) + 's;' +
+      'color:' + colors[i % colors.length] + ';';
+    document.body.appendChild(p);
+  }
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,43 @@
+# 虚拟环境与缓存
+.venv/
+__pycache__/
+*.pyc
+.cache/
+.pytest_cache/
+
+# 密钥与本地配置（绝不进 git）
+.env
+.env.*
+!config/.env.example
+
+# 数据产物（体积大、可重建，不进 git；保留目录用 .gitkeep）
+pdfs/*
+parsed/*
+chunks/*
+logs/*
+!**/.gitkeep
+
+# 临时诊断脚本（调试时生成，不进仓库）
+scripts/test_diag.py
+scripts/test_diag2.py
+scripts/test_regex_fix.py
+scripts/test_graph_sse.py
+scripts/test_admin.py
+scripts/test_e2e.py
+scripts/test_enterprise.py
+scripts/test_extract.py
+scripts/test_vector.py
+scripts/test_fusion_diag.py
+scripts/test_kg_diag.py
+scripts/test_diag3.py
+scripts/test_rewrite.py
+scripts/add_lin.py
+scripts/_test_csv.py
+
+# 个人快捷脚本（含本地路径，不进仓库）
+问答.bat
+问答.ps1
+
+# 编辑器
+.idea/
+.vscode/

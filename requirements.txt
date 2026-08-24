@@ -1,0 +1,23 @@
+# 红楼梦企业级问答系统 · P2 依赖
+# MinerU 作为外部 CLI 调用（系统已装），不绑进本 venv，避免拖重环境。
+
+# ── 大模型接入 ──
+httpx>=0.27              # OpenAI 兼容 HTTP 接口（网关 / 本地 Ollama）
+
+# ── 配置管理 ──
+python-dotenv>=1.0       # 从 .env 读取配置，密钥不进代码
+
+# ── 检索 ──
+jieba>=0.42              # 中文分词（P0 关键词检索）
+numpy>=2.0               # 向量余弦相似度计算
+
+# ── 数据库 ──
+psycopg2-binary>=2.9     # PostgreSQL 驱动（向量库 + 三元组 + 审计日志）
+
+# ── Web 服务（P1 起） ──
+fastapi>=0.140           # Web 框架
+uvicorn>=0.50            # ASGI 服务器
+
+# ── 测试 ──
+pytest>=9.0              # 测试框架
+httpx>=0.27              # HTTP 客户端（已在上面大模型接入处声明，此处标注用途）

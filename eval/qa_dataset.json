@@ -1,0 +1,170 @@
+[
+  {
+    "id": "rel_001",
+    "question": "贾宝玉的母亲是谁",
+    "type": "人物关系",
+    "kg_answers": ["王夫人"],
+    "chunks_should_contain": ["王夫人"],
+    "notes": "KG直接命中"
+  },
+  {
+    "id": "rel_002",
+    "question": "林黛玉和贾宝玉什么关系",
+    "type": "人物关系",
+    "kg_answers": ["表兄妹", "兄妹"],
+    "chunks_should_contain": ["林黛玉", "贾宝玉"],
+    "notes": "KG+原文双重验证"
+  },
+  {
+    "id": "rel_003",
+    "question": "王熙凤的丈夫是谁",
+    "type": "人物关系",
+    "kg_answers": ["贾琏"],
+    "chunks_should_contain": ["贾琏"],
+    "notes": "KG直接命中"
+  },
+  {
+    "id": "rel_004",
+    "question": "薛宝钗的母亲是谁",
+    "type": "人物关系",
+    "kg_answers": ["薛姨妈"],
+    "chunks_should_contain": ["薛姨妈"],
+    "notes": "KG单跳关系"
+  },
+  {
+    "id": "rel_005",
+    "question": "贾母和贾宝玉什么关系",
+    "type": "人物关系",
+    "kg_answers": ["祖母", "祖孙"],
+    "chunks_should_contain": ["贾母"],
+    "notes": "祖孙关系"
+  },
+  {
+    "id": "rel_006",
+    "question": "贾政和贾宝玉什么关系",
+    "type": "人物关系",
+    "kg_answers": ["父子", "父亲"],
+    "chunks_should_contain": ["贾政"],
+    "notes": "父子关系"
+  },
+  {
+    "id": "plot_001",
+    "question": "黛玉葬花的故事",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["葬花", "黛玉"],
+    "notes": "经典情节"
+  },
+  {
+    "id": "plot_002",
+    "question": "宝玉为什么挨打",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["挨打", "宝玉"],
+    "notes": "需要原文上下文"
+  },
+  {
+    "id": "plot_003",
+    "question": "刘姥姥进大观园发生了什么",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["刘姥姥", "大观园"],
+    "notes": "经典场景"
+  },
+  {
+    "id": "plot_004",
+    "question": "元春省亲",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["元春", "省亲"],
+    "notes": "重要事件"
+  },
+  {
+    "id": "plot_005",
+    "question": "晴雯撕扇子的故事",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["晴雯", "撕扇"],
+    "notes": "人物细节"
+  },
+  {
+    "id": "plot_006",
+    "question": "探春理家",
+    "type": "情节事件",
+    "kg_answers": null,
+    "chunks_should_contain": ["探春", "理家"],
+    "notes": "情节检索"
+  },
+  {
+    "id": "mixed_001",
+    "question": "林黛玉是怎么死的",
+    "type": "混合",
+    "kg_answers": null,
+    "chunks_should_contain": ["林黛玉", "死", "魂归"],
+    "notes": "需要原文细节"
+  },
+  {
+    "id": "mixed_002",
+    "question": "王熙凤是什么身份",
+    "type": "混合",
+    "kg_answers": ["管家", "琏二奶奶"],
+    "chunks_should_contain": ["王熙凤"],
+    "notes": "人物属性+情节"
+  },
+  {
+    "id": "mixed_003",
+    "question": "贾宝玉的通灵宝玉是什么来历",
+    "type": "混合",
+    "kg_answers": null,
+    "chunks_should_contain": ["通灵宝玉", "来历", "女娲"],
+    "notes": "需要原文+世界观"
+  },
+  {
+    "id": "fact_001",
+    "question": "红楼梦的作者是谁",
+    "type": "事实查询",
+    "kg_answers": ["曹雪芹"],
+    "chunks_should_contain": ["作者", "曹雪芹"],
+    "notes": "基础知识"
+  },
+  {
+    "id": "fact_002",
+    "question": "海棠诗社有哪些成员",
+    "type": "事实查询",
+    "kg_answers": null,
+    "chunks_should_contain": ["海棠诗社", "探春", "黛玉"],
+    "notes": "多人名检索"
+  },
+  {
+    "id": "fact_003",
+    "question": "金陵十二钗有哪些人",
+    "type": "事实查询",
+    "kg_answers": ["黛玉", "宝钗", "元春", "探春", "湘云", "妙玉", "迎春", "惜春", "王熙凤", "巧姐", "李纨", "秦可卿"],
+    "chunks_should_contain": ["十二钗"],
+    "notes": "列表型知识"
+  },
+  {
+    "id": "fact_004",
+    "question": "大观园里有哪些主要的院落",
+    "type": "事实查询",
+    "kg_answers": null,
+    "chunks_should_contain": ["潇湘馆", "蘅芜苑", "怡红院"],
+    "notes": "地名检索"
+  },
+  {
+    "id": "edge_001",
+    "question": "妙玉的性格特点",
+    "type": "边缘人物",
+    "kg_answers": null,
+    "chunks_should_contain": ["妙玉"],
+    "notes": "非核心人物"
+  },
+  {
+    "id": "edge_002",
+    "question": "秦可卿的身世",
+    "type": "边缘人物",
+    "kg_answers": null,
+    "chunks_should_contain": ["秦可卿", "身世"],
+    "notes": "隐晦人物"
+  }
+]

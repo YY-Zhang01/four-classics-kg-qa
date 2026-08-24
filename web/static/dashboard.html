@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>功能中心 · 经典问答系统</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --paper: #f7f3eb;
+    --paper-dark: #ede4d3;
+    --ink: #2c1810;
+    --ink-light: #5c4a3a;
+    --ink-muted: #9c8b7b;
+    --cinnabar: #bc3a2e;
+    --cinnabar-light: #d45347;
+    --gold: #b8935a;
+    --gold-light: #d4b87a;
+    --wood-dark: #3d1f0f;
+    --wood: #5c2e16;
+    --jade: #6b8e6b;
+    --indigo: #2c5f7c;
+    --border: #d9cdb3;
+    --border-light: #e8dfce;
+    --shadow-sm: 0 1px 4px rgba(44,24,16,0.06);
+    --shadow: 0 2px 12px rgba(44,24,16,0.08);
+    --shadow-lg: 0 4px 24px rgba(44,24,16,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  body {
+    font-family: "Noto Serif SC", "STSong", "Songti SC", "SimSun", "PingFang SC", "Microsoft YaHei", serif;
+    background:
+      radial-gradient(ellipse 120% 180px at 15% 100%, rgba(80,60,40,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 90% 120px at 70% 100%, rgba(80,60,40,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 200px at 50% 30%, rgba(200,180,150,0.05) 0%, transparent 60%),
+      var(--paper);
+    color: var(--ink); min-height: 100vh;
+    display: flex; flex-direction: column;
+    position: relative; overflow-x: hidden;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(139,115,85,0.015) 2px, rgba(139,115,85,0.015) 3px),
+      repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(139,115,85,0.01) 2px, rgba(139,115,85,0.01) 3px);
+  }
+
+  /* ── header：匾额 ── */
+  .header {
+    background: linear-gradient(180deg, #4a1a0a 0%, #6b2f18 40%, #5c2e16 100%);
+    color: var(--gold-light); padding: 12px 28px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 3px 20px rgba(60,16,8,0.35);
+    position: relative; z-index: 10;
+    border-bottom: 3px solid #3a1000;
+  }
+  .header::after {
+    content: ''; position: absolute; bottom: -3px; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-light), transparent);
+    opacity: 0.5;
+  }
+  .header .seal {
+    width: 38px; height: 38px;
+    border: 2px solid var(--gold-light);
+    border-radius: 50%;
+    color: var(--gold-light);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: bold;
+    font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+    flex-shrink: 0; transform: rotate(-5deg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  .header h1 {
+    font-size: 20px; font-weight: 400; letter-spacing: 6px;
+    font-family: "Noto Serif SC", "STKaiti", "KaiTi", serif;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  }
+  .header .user-bar {
+    margin-left: auto; display: flex; align-items: center; gap: 14px;
+  }
+  .header .user-greeting {
+    font-size: 13px; opacity: 0.85; letter-spacing: 2px;
+  }
+  .header .user-bar button {
+    padding: 5px 16px; border: 1px solid rgba(212,184,122,0.3); border-radius: 4px;
+    background: rgba(255,255,255,0.06); color: var(--gold-light);
+    cursor: pointer; font-size: 12px; font-family: inherit; letter-spacing: 2px;
+    transition: all .2s;
+  }
+  .header .user-bar button:hover {
+    background: rgba(212,184,122,0.15); border-color: var(--gold-light);
+    text-shadow: 0 0 8px rgba(212,184,122,0.4);
+  }
+
+  /* ── 主内容 ── */
+  .main {
+    flex: 1; position: relative; z-index: 1;
+    max-width: 900px; margin: 0 auto; padding: 48px 24px;
+    width: 100%;
+  }
+
+  /* ── 欢迎横幅 ── */
+  .banner {
+    text-align: center; margin-bottom: 42px;
+  }
+  .banner .seal-big {
+    width: 64px; height: 64px;
+    border: 3px solid var(--cinnabar);
+    border-radius: 50%;
+    color: var(--cinnabar);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 28px; font-weight: bold;
+    font-family: "STKaiti", "KaiTi", "Noto Serif SC", serif;
+    transform: rotate(-5deg);
+    box-shadow: 0 1px 6px rgba(188,58,46,0.2);
+    margin-bottom: 18px;
+  }
+  .banner h2 {
+    font-family: "Noto Serif SC", "STKaiti", "KaiTi", serif;
+    font-size: 26px; letter-spacing: 8px;
+    color: var(--wood-dark); font-weight: 400; margin-bottom: 8px;
+  }
+  .banner p {
+    font-size: 14px; color: var(--ink-muted);
+    letter-spacing: 3px;
+  }
+
+  /* ── 模块卡片网格 ── */
+  .modules {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+  }
+
+  .module-card {
+    background: linear-gradient(180deg, #fdfaf3, #fefcf7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 28px 24px 24px;
+    cursor: pointer; transition: all .3s;
+    box-shadow: var(--shadow-sm);
+    text-decoration: none; color: inherit; display: block;
+    position: relative; overflow: hidden;
+  }
+  .module-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--gold);
+  }
+  /* 每个卡片的左侧色条 */
+  .module-card::before {
+    content: ''; position: absolute; left: 0; top: 12px; bottom: 12px;
+    width: 4px; border-radius: 0 3px 3px 0;
+  }
+  .module-card.qna::before { background: var(--cinnabar); }
+  .module-card.graph::before { background: var(--indigo); }
+  .module-card.history::before { background: var(--jade); }
+  .module-card.guest::before { background: var(--gold); }
+
+  .module-card .card-icon {
+    font-size: 32px; margin-bottom: 14px;
+  }
+  .module-card h3 {
+    font-family: "Noto Serif SC", "STKaiti", "KaiTi", serif;
+    font-size: 18px; letter-spacing: 4px;
+    color: var(--wood-dark); font-weight: 400; margin-bottom: 8px;
+  }
+  .module-card p {
+    font-size: 13px; color: var(--ink-muted); line-height: 1.7;
+    letter-spacing: 1px;
+  }
+  .module-card .card-badge {
+    display: inline-block; margin-top: 12px;
+    padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; letter-spacing: 2px;
+    border: 1px solid var(--border-light);
+    color: var(--ink-muted);
+  }
+  .module-card.qna .card-badge { border-color: var(--cinnabar); color: var(--cinnabar); }
+  .module-card.graph .card-badge { border-color: var(--indigo); color: var(--indigo); }
+
+  /* ── 花瓣 ── */
+  .petal {
+    position: fixed; z-index: 0; pointer-events: none;
+    animation: petalFall linear infinite; opacity: 0;
+  }
+  @keyframes petalFall {
+    0%   { transform: translateY(-20px) rotate(0deg) translateX(0); opacity: 0; }
+    5%   { opacity: 0.7; }
+    85%  { opacity: 0.5; }
+    100% { transform: translateY(105vh) rotate(540deg) translateX(60px); opacity: 0; }
+  }
+
+  /* ── 响应式 ── */
+  @media (max-width: 560px) {
+    .header { padding: 10px 16px; }
+    .header h1 { font-size: 16px; letter-spacing: 3px; }
+    .banner h2 { font-size: 20px; letter-spacing: 4px; }
+    .modules { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="seal">红</div>
+  <h1>经典问答系统</h1>
+  <div class="user-bar">
+    <span class="user-greeting" id="userGreeting">—</span>
+    <button onclick="logout()">退出登录</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="banner">
+    <div class="seal-big">红</div>
+    <h2>欢迎回来</h2>
+    <p>请选择您要使用的功能模块</p>
+  </div>
+
+  <div class="modules">
+    <!-- 经典问答 -->
+    <a class="module-card qna" href="/">
+      <div class="card-icon">📜</div>
+      <h3>经典问答</h3>
+      <p>以四大名著为知识库，智能检索原文段落与人物关系，精准回答您的问题。</p>
+      <span class="card-badge">核心功能</span>
+    </a>
+
+    <!-- 知识图谱 -->
+    <a class="module-card graph" href="/?tab=graph">
+      <div class="card-icon">🔗</div>
+      <h3>知识图谱</h3>
+      <p>浏览四大名著的人物关系网络，可视化探索角色之间的关联与渊源。</p>
+      <span class="card-badge">可视化</span>
+    </a>
+
+    <!-- 问答历史 -->
+    <a class="module-card history" href="/?tab=history">
+      <div class="card-icon">📋</div>
+      <h3>问答历史</h3>
+      <p>回顾您的问答记录，快速查找之前与 AI 探讨过的经典情节与人物分析。</p>
+      <span class="card-badge">个人记录</span>
+    </a>
+
+    <!-- 游客模式（未登录降级入口） -->
+    <a class="module-card guest" href="/">
+      <div class="card-icon">🎭</div>
+      <h3>游客模式</h3>
+      <p>无需登录，直接体验经典问答。游客模式下问答历史不会保存。</p>
+      <span class="card-badge">免注册</span>
+    </a>
+  </div>
+</div>
+
+<script>
+// ── 检查登录状态 ──
+var token = localStorage.getItem('rd_token');
+var userStr = localStorage.getItem('rd_user');
+
+if (!token || !userStr) {
+  // 未登录 → 跳转登录页
+  window.location.href = '/login';
+} else {
+  var user = JSON.parse(userStr);
+  document.getElementById('userGreeting').textContent =
+    (user.display_name || user.username) + '，欢迎回来';
+}
+
+function logout() {
+  localStorage.removeItem('rd_token');
+  localStorage.removeItem('rd_user');
+  window.location.href = '/login';
+}
+
+// ── 花瓣 ──
+(function(){
+  var petals = ['🌸','🌺','🏵','✿','❀','💮'];
+  var colors = ['#f0c0b0','#e8a0a0','#f5d0c0','#d09090','#f0b8b8'];
+  for (var i = 0; i < 10; i++) {
+    var p = document.createElement('div');
+    p.className = 'petal';
+    p.textContent = petals[i % petals.length];
+    p.style.cssText =
+      'left:' + (Math.random() * 90 + 5) + '%;' +
+      'font-size:' + (Math.random() * 10 + 10) + 'px;' +
+      'animation-duration:' + (Math.random() * 10 + 12) + 's;' +
+      'animation-delay:' + (Math.random() * 8) + 's;' +
+      'color:' + colors[i % colors.length] + ';';
+    document.body.appendChild(p);
+  }
+})();
+</script>
+
+</body>
+</html>

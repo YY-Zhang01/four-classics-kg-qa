@@ -1,0 +1,827 @@
+{
+  "info": {
+    "name": "RedDream API 测试集合",
+    "description": "红楼梦企业级问答系统 · 全接口测试集合\n\n包含：\n- 基础接口（健康检查、配置、领域列表）\n- 核心接口（问答、SSE 流式、Agent 模式）\n- 管理后台（检索配置、日志查询、CSV 导出）\n- 图谱探索（关系图、路径搜索、邻居网络）\n- 认证接口（注册、登录、用户信息）\n\n使用方法：\n1. 启动 RedDream：cd E:\\ReshapingMyself\\projects\\RedDream && uvicorn web.server:app --host 127.0.0.1 --port 7860\n2. 导入此集合到 Postman\n3. 设置 baseUrl 变量为 http://127.0.0.1:7860\n4. 按文件夹顺序执行\n\n注意：\n- 问答接口返回 SSE 流（text/event-stream），Postman 会逐行显示\n- 管理后台接口需要 ADMIN_TOKEN，在 Authorization tab 选 Bearer Token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. 基础接口",
+      "item": [
+        {
+          "name": "健康检查",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 验证健康检查接口",
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"响应 JSON\", () => pm.response.to.be.json);",
+                  "",
+                  "const data = pm.response.json();",
+                  "pm.test(\"包含 status 字段\", () => pm.expect(data).to.have.property(\"status\"));",
+                  "pm.test(\"status 为 ok\", () => pm.expect(data.status).to.eql(\"ok\"));",
+                  "pm.test(\"包含 retriever 字段\", () => pm.expect(data).to.have.property(\"retriever\"));",
+                  "pm.test(\"包含 chunks 字段\", () => pm.expect(data).to.have.property(\"chunks\"));",
+                  "pm.test(\"chunks 是非负整数\", () => {",
+                  "    pm.expect(data.chunks).to.be.a(\"number\");",
+                  "    pm.expect(data.chunks).to.be.at.least(0);",
+                  "});",
+                  "",
+                  "// 响应时间应小于 500ms",
+                  "pm.test(\"响应时间 < 500ms\", () => pm.expect(pm.response.responseTime).to.be.below(500));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        },
+        {
+          "name": "项目配置",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.test(\"包含 name/domain/seal/hints\", () => {",
+                  "    pm.expect(data).to.have.property(\"name\");",
+                  "    pm.expect(data).to.have.property(\"domain\");",
+                  "    pm.expect(data).to.have.property(\"seal\");",
+                  "    pm.expect(data).to.have.property(\"hints\");",
+                  "});",
+                  "pm.test(\"hints 是数组\", () => pm.expect(data.hints).to.be.an(\"array\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/config",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "config"]
+            }
+          }
+        },
+        {
+          "name": "书籍列表",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "const data = pm.response.json();",
+                  "pm.test(\"包含 domains 和 active\", () => {",
+                  "    pm.expect(data).to.have.property(\"domains\");",
+                  "    pm.expect(data).to.have.property(\"active\");",
+                  "});",
+                  "pm.test(\"domains 是数组\", () => pm.expect(data.domains).to.be.an(\"array\"));",
+                  "pm.test(\"每个 domain 有 seal 字段\", () => {",
+                  "    data.domains.forEach(d => pm.expect(d).to.have.property(\"seal\"));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/domains",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "domains"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. 核心问答",
+      "item": [
+        {
+          "name": "基础问答 - 人物关系",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Content-Type 是 SSE\", () => {",
+                  "    const ct = pm.response.headers.get(\"Content-Type\");",
+                  "    pm.expect(ct).to.include(\"text/event-stream\");",
+                  "});",
+                  "pm.test(\"响应包含 data: 前缀\", () => {",
+                  "    pm.expect(pm.response.text()).to.include(\"data:\");",
+                  "});",
+                  "pm.test(\"响应不为空\", () => {",
+                  "    pm.expect(pm.response.text().length).to.be.above(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"贾宝玉和林黛玉是什么关系？\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ask",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ask"]
+            }
+          }
+        },
+        {
+          "name": "空问题 - 输入校验",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"响应提示请输入问题\", () => {",
+                  "    pm.expect(pm.response.text()).to.include(\"请输入问题\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ask",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ask"]
+            }
+          }
+        },
+        {
+          "name": "多轮对话 - 带 history",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"带 history 的请求不报错\", () => {",
+                  "    pm.expect(pm.response.text()).to.include(\"data:\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"他母亲是谁？\",\n  \"history\": [\n    {\"role\": \"user\", \"content\": \"贾宝玉是谁？\"},\n    {\"role\": \"assistant\", \"content\": \"贾宝玉是《红楼梦》的男主角。\"}\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ask",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ask"]
+            }
+          }
+        },
+        {
+          "name": "Agent 模式问答",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"状态码 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Agent 模式返回 SSE 流\", () => {",
+                  "    pm.expect(pm.response.text()).to.include(\"data:\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"question\": \"红楼梦中有哪些重要人物？\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agent/ask",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "agent", "ask"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. 用户认证",
+      "item": [
+        {
+          "name": "注册新用户",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"注册返回 ok\", () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.ok).to.be.true;",
+                  "});",
+                  "// 保存 token 供后续请求使用",
+                  "if (pm.response.json().token) {",
+                  "    pm.collectionVariables.set(\"userToken\", pm.response.json().token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"test_qa_user\",\n  \"password\": \"Test123456\",\n  \"display_name\": \"测试用户\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "用户登录",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"登录成功返回 token\", () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property(\"token\");",
+                  "    pm.collectionVariables.set(\"userToken\", data.token);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"test_qa_user\",\n  \"password\": \"Test123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "获取当前用户信息",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"获取用户信息成功\", () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.ok).to.be.true;",
+                  "    pm.expect(data.user).to.have.property(\"username\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{userToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. 管理后台",
+      "item": [
+        {
+          "name": "系统状态（需 Admin Token）",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"包含 uptime\", () => pm.expect(data).to.have.property(\"uptime\"));",
+                  "    pm.test(\"包含 chunks 和 kg_triples\", () => {",
+                  "        pm.expect(data).to.have.property(\"chunks\");",
+                  "        pm.expect(data).to.have.property(\"kg_triples\");",
+                  "    });",
+                  "    console.log(`知识库: ${data.chunks} chunks, ${data.kg_triples} KG triples`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "status"]
+            }
+          }
+        },
+        {
+          "name": "统计摘要",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"包含命中率\", () => pm.expect(data).to.have.property(\"hit_rate\"));",
+                  "    console.log(`总问答: ${data.total_qa}, 命中率: ${data.hit_rate}%`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "stats"]
+            }
+          }
+        },
+        {
+          "name": "问答日志 - 搜索+分页",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"分页结构正确\", () => {",
+                  "        pm.expect(data).to.have.property(\"total\");",
+                  "        pm.expect(data).to.have.property(\"logs\");",
+                  "        pm.expect(data.logs).to.be.an(\"array\");",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/logs?limit=10&q=贾宝玉",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "logs"],
+              "query": [
+                {"key": "limit", "value": "10"},
+                {"key": "q", "value": "贾宝玉"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "检索方式 - 查看",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"返回 mode 和 label\", () => {",
+                  "        pm.expect(data).to.have.property(\"mode\");",
+                  "        pm.expect(data).to.have.property(\"label\");",
+                  "    });",
+                  "    console.log(`当前检索方式: ${data.mode} (${data.label})`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/retriever",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "retriever"]
+            }
+          }
+        },
+        {
+          "name": "检索方式 - 切换为 keyword",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"切换成功\", () => pm.expect(data.ok).to.be.true);",
+                  "    pm.test(\"mode 变为 keyword\", () => pm.expect(data.mode).to.eql(\"keyword\"));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\": \"keyword\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/retriever",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "retriever"]
+            }
+          }
+        },
+        {
+          "name": "Top-K - 查看",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"top_k 在 1-20 之间\", () => {",
+                  "        const k = pm.response.json().top_k;",
+                  "        pm.expect(k).to.be.within(1, 20);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/topk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "topk"]
+            }
+          }
+        },
+        {
+          "name": "Top-K - 调整为 3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"调整成功\", () => pm.expect(pm.response.json().ok).to.be.true);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"top_k\": 3}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/topk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "topk"]
+            }
+          }
+        },
+        {
+          "name": "CSV 日志导出",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"返回 CSV 格式\", () => {",
+                  "        const ct = pm.response.headers.get(\"Content-Type\");",
+                  "        pm.expect(ct).to.include(\"csv\");",
+                  "    });",
+                  "    pm.test(\"文件名正确\", () => {",
+                  "        const cd = pm.response.headers.get(\"Content-Disposition\");",
+                  "        pm.expect(cd).to.include(\"reddream_logs.csv\");",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/logs/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "logs", "export"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. 图谱探索",
+      "item": [
+        {
+          "name": "人物关系图",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"返回 nodes 和 edges\", () => {",
+                  "        pm.expect(data).to.have.property(\"nodes\");",
+                  "        pm.expect(data).to.have.property(\"edges\");",
+                  "    });",
+                  "    console.log(`节点: ${data.nodes.length}, 边: ${data.edges.length}`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/kg/graph?entity=贾宝玉",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "kg", "graph"],
+              "query": [{"key": "entity", "value": "贾宝玉"}]
+            }
+          }
+        },
+        {
+          "name": "路径搜索 - 两人关系链",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().ok) {",
+                  "    console.log(`找到 ${pm.response.json().paths.length} 条路径`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/graph/path?entity_a=贾宝玉&entity_b=林黛玉&max_depth=3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "graph", "path"],
+              "query": [
+                {"key": "entity_a", "value": "贾宝玉"},
+                {"key": "entity_b", "value": "林黛玉"},
+                {"key": "max_depth", "value": "3"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "邻居网络展开",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().ok) {",
+                  "    const data = pm.response.json();",
+                  "    console.log(`邻居节点: ${data.nodes?.length || 0}, 边: ${data.edges?.length || 0}`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/graph/neighbors?entity=贾宝玉&depth=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "graph", "neighbors"],
+              "query": [
+                {"key": "entity", "value": "贾宝玉"},
+                {"key": "depth", "value": "2"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "实体搜索",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 && pm.response.json().ok) {",
+                  "    console.log(`找到 ${pm.response.json().entities.length} 个实体`);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/graph/search?q=贾&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "graph", "search"],
+              "query": [
+                {"key": "q", "value": "贾"},
+                {"key": "limit", "value": "10"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. 书籍切换",
+      "item": [
+        {
+          "name": "切换到红楼梦",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"切换成功或已在该书\", () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.ok).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"domain\": \"红楼梦\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/switch-domain",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "switch-domain"]
+            }
+          }
+        },
+        {
+          "name": "空领域名 - 应拒绝",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "pm.test(\"空领域被拒绝\", () => pm.expect(data.ok).to.be.false);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"domain\": \"\"}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/switch-domain",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "switch-domain"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:7860",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string",
+      "description": "在 .env 中设置的 ADMIN_TOKEN，用于管理后台接口鉴权"
+    },
+    {
+      "key": "userToken",
+      "value": "",
+      "type": "string",
+      "description": "登录后自动填充的用户 JWT token"
+    }
+  ]
+}

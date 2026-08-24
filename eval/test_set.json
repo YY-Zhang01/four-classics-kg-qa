@@ -1,0 +1,86 @@
+[
+  {
+    "id": "rel-01",
+    "question": "贾宝玉和林黛玉是什么关系？",
+    "golden_answer": "知己关系，两人互生情愫，彼此引为知己。",
+    "keywords": ["知己", "宝黛"],
+    "category": "关系"
+  },
+  {
+    "id": "rel-02",
+    "question": "贾宝玉的母亲是谁？",
+    "golden_answer": "王夫人。",
+    "keywords": ["王夫人"],
+    "category": "关系"
+  },
+  {
+    "id": "rel-03",
+    "question": "林黛玉的父亲是谁？",
+    "golden_answer": "林如海。",
+    "keywords": ["林如海"],
+    "category": "关系"
+  },
+  {
+    "id": "attr-01",
+    "question": "林如海是什么官？",
+    "golden_answer": "巡盐御史。",
+    "keywords": ["巡盐御史"],
+    "category": "属性"
+  },
+  {
+    "id": "attr-02",
+    "question": "林黛玉住在哪里？",
+    "golden_answer": "潇湘馆。",
+    "keywords": ["潇湘馆"],
+    "category": "属性"
+  },
+  {
+    "id": "attr-03",
+    "question": "贾宝玉住在哪里？",
+    "golden_answer": "怡红院。",
+    "keywords": ["怡红院"],
+    "category": "属性"
+  },
+  {
+    "id": "rel-04",
+    "question": "贾宝玉和薛宝钗是什么关系？",
+    "golden_answer": "姨表姐弟，薛宝钗最终嫁给贾宝玉。",
+    "keywords": ["表亲", "夫妻", "薛宝钗"],
+    "category": "关系"
+  },
+  {
+    "id": "rel-05",
+    "question": "王熙凤的丈夫是谁？",
+    "golden_answer": "贾琏。",
+    "keywords": ["贾琏"],
+    "category": "关系"
+  },
+  {
+    "id": "multi-01",
+    "question": "贾宝玉的母亲的婆婆是谁？",
+    "golden_answer": "贾母。王夫人的婆婆是贾母。",
+    "keywords": ["贾母"],
+    "category": "多跳"
+  },
+  {
+    "id": "attr-04",
+    "question": "林如海的出身是什么？",
+    "golden_answer": "前科探花。",
+    "keywords": ["探花"],
+    "category": "属性"
+  },
+  {
+    "id": "rel-06",
+    "question": "贾宝玉和贾元春是什么关系？",
+    "golden_answer": "姐弟关系，贾元春是贾宝玉的姐姐。",
+    "keywords": ["姐弟", "姐妹"],
+    "category": "关系"
+  },
+  {
+    "id": "neg-01",
+    "question": "贾宝玉的手机号是多少？",
+    "golden_answer": "根据现有资料未找到相关内容。",
+    "keywords": ["未找到"],
+    "category": "拒答"
+  }
+]
