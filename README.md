@@ -171,3 +171,9 @@ python -m web.server
 .\.venv\Scripts\python.exe -m pytest tests/ -q     # 单元 / 接口测试
 python -m eval.run_all 5                           # 检索评测(Recall@5/MRR) + 生成评测
 ```
+
+## 八、相关文档
+
+- `README.md`：本文件（依赖、目录与运行说明）
+- `实施手册_红楼梦起源阶段.md`：项目起源阶段的完整实施手册（历史记录）
+- `RedDream_优化规划文档.md`：后续演进规划（六阶段路线）
