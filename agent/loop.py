@@ -14,6 +14,7 @@ from typing import Iterator
 
 from llm.base import get_llm
 from agent.tools import get_registry
+from core.sse import sse_text
 
 _MAX_ITERATIONS = 5  # 最多调 5 次工具，防止死循环
 
@@ -110,14 +111,14 @@ def agent_ask(question: str, history: list[dict] | None = None) -> Iterator[str]
         # 检查是否是最终回答
         final = _is_final(raw)
         if final:
-            yield f"data: {final}\n\n"
+            yield sse_text(final)
             return
 
         # 检查是否是工具调用
         tool_name, args = _parse_tool_call(raw)
         if tool_name is None:
             # 既不是 FINAL 也不是 TOOL，就当作最终回答
-            yield f"data: {raw}\n\n"
+            yield sse_text(raw)
             return
 
         # 执行工具
@@ -131,7 +132,7 @@ def agent_ask(question: str, history: list[dict] | None = None) -> Iterator[str]
                 result = f"工具执行失败：{e}"
 
         tool_results.append(f"[{tool_name}] {result[:200]}")
-        yield f"data: [调用工具 {tool_name}]\n\n"
+        yield sse_text(f"[调用工具 {tool_name}]")
 
         # 把工具结果塞回对话
         messages.append({"role": "assistant", "content": raw})
@@ -141,12 +142,12 @@ def agent_ask(question: str, history: list[dict] | None = None) -> Iterator[str]
         })
 
     # 超限，强行生成
-    yield f"data: （达到最大查询次数，基于已有信息回答）\n\n"
+    yield sse_text("（达到最大查询次数，基于已有信息回答）")
     final = llm.chat(messages + [{
         "role": "user",
         "content": "请基于以上所有信息，直接输出 FINAL: 最终回答。不要调用工具。"
     }])
-    yield f"data: {final}\n\n"
+    yield sse_text(final)
 
 
 def agent_ask_stream(question: str, history: list[dict] | None = None) -> Iterator[str]:

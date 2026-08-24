@@ -31,13 +31,16 @@ CREATE TABLE IF NOT EXISTS public.kg_triples (
 
 # 当前激活的 domain（运行时切换用，默认从 env 读）
 import os as _os
+import threading as _threading
 _active_kg_domain: str = _os.getenv("PROJECT_DOMAIN", "")
+_kg_domain_lock = _threading.Lock()
 
 
 def set_kg_domain(domain: str) -> None:
-    """运行时切换 KG 查询的领域过滤。"""
+    """运行时切换 KG 查询的领域过滤（线程安全）。"""
     global _active_kg_domain
-    _active_kg_domain = domain
+    with _kg_domain_lock:
+        _active_kg_domain = domain
 
 
 def _domain_clause() -> str:

@@ -680,7 +680,7 @@ function ask() {
             sourcesEl = document.createElement('div');
             sourcesEl.className = 'sources';
           }
-          sourcesEl.textContent = '🔧 ' + chunk.slice(1, -1);
+          sourcesEl.textContent = '🔧 ' + chunk.slice(1, -1).replace(/\\n/g, '\n');
           continue;
         }
 
@@ -690,7 +690,7 @@ function ask() {
             sourcesEl = document.createElement('div');
             sourcesEl.className = 'sources';
           }
-          sourcesEl.textContent = '📚 ' + chunk.slice(1, -1);
+          sourcesEl.textContent = '📚 ' + chunk.slice(1, -1).replace(/\\n/g, '\n');
           continue;
         }
 
@@ -711,7 +711,7 @@ function ask() {
           firstChunk = false;
         }
 
-        fullText += chunk;
+        fullText += chunk.replace(/\\n/g, '\n');
         aiDiv.querySelector('.bubble').innerHTML = renderMd(fullText);
       }
     }

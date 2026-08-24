@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 import hashlib
+import re
 import secrets
 from datetime import datetime, timedelta, timezone
 
@@ -17,6 +18,9 @@ from retrieval.db import get_conn
 JWT_SECRET = os.getenv("JWT_SECRET", secrets.token_urlsafe(32))
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRES_HOURS = 24  # token 有效期 24 小时
+
+# 首个注册用户是否自动成为管理员（可用环境变量关闭，显式化控制）
+AUTO_FIRST_ADMIN = os.getenv("AUTO_FIRST_ADMIN", "true").strip().lower() in ("1", "true", "yes", "on")
 
 # ── Bearer Token 提取器 ───────────────────────────────────────────────────────
 security = HTTPBearer(auto_error=False)
@@ -89,13 +93,20 @@ def get_current_admin(
 
 # ── 业务逻辑 ──────────────────────────────────────────────────────────────────
 
+def _validate_password(password: str) -> None:
+    """校验密码强度：至少 8 位，且同时包含字母和数字。"""
+    if len(password) < 8:
+        raise ValueError("密码至少 8 个字符")
+    if not re.search(r"[A-Za-z]", password) or not re.search(r"\d", password):
+        raise ValueError("密码需同时包含字母和数字")
+
+
 def register(username: str, password: str, display_name: str | None = None, role: str = "user") -> dict:
-    """注册新用户。第一个注册的用户自动成为管理员。"""
+    """注册新用户。默认第一个注册的用户自动成为管理员（可用 AUTO_FIRST_ADMIN 关闭）。"""
     username = username.strip()
     if len(username) < 2:
         raise ValueError("用户名至少 2 个字符")
-    if len(password) < 4:
-        raise ValueError("密码至少 4 个字符")
+    _validate_password(password)
     if role not in ("user", "admin"):
         raise ValueError("角色只能是 user 或 admin")
 
@@ -104,10 +115,10 @@ def register(username: str, password: str, display_name: str | None = None, role
         if cur.fetchone():
             raise ValueError(f"用户名 '{username}' 已被注册")
 
-        # 如果没有用户，第一个注册者自动成为管理员
+        # 如果没有用户，且 AUTO_FIRST_ADMIN 开启，第一个注册者自动成为管理员
         cur.execute("SELECT count(*) FROM public.users")
         is_first = cur.fetchone()[0] == 0
-        actual_role = "admin" if is_first else role
+        actual_role = "admin" if (is_first and AUTO_FIRST_ADMIN) else role
 
         cur.execute(
             "INSERT INTO public.users (username, password_hash, display_name, role) VALUES (%s, %s, %s, %s) RETURNING id",

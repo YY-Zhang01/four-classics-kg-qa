@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import os
 import re
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -80,7 +81,8 @@ def set_top_k(k: int) -> None:
     global _TOP_K_OVERRIDE
     if k < 1 or k > 20:
         raise ValueError(f"Top-K 范围 1-20，收到 {k}")
-    _TOP_K_OVERRIDE = k
+    with _state_lock:
+        _TOP_K_OVERRIDE = k
 
 
 TOP_K = get_top_k()  # 兼容旧代码的直接导入
@@ -98,6 +100,9 @@ PROJECT_DOMAIN = os.getenv("PROJECT_DOMAIN", "红楼梦")
 # ── 运行时领域切换（支持前端书籍选择）─────────────────────
 # 用户端和管理端各自维护独立的 domain 状态，互不干扰。
 # 用户页面切换书 → 只影响用户端；管理后台切换 → 只影响管理后台。
+
+# 全局状态锁：领域/检索/TopK 都是进程级全局状态，多线程读写需加锁防竞态
+_state_lock = threading.RLock()
 
 # ── 用户端状态 ──
 _active_domain: str = PROJECT_DOMAIN
@@ -163,25 +168,26 @@ def switch_domain(domain: str) -> dict:
     """用户端运行时切换到指定领域。不影响管理端状态。"""
     global _active_domain, _active_name, _ENTITIES_CACHE
 
-    # 清除实体缓存（只清此 domain 的，保留其他书）
-    _ENTITIES_CACHE.pop(domain, None)
+    with _state_lock:
+        # 清除实体缓存（只清此 domain 的，保留其他书）
+        _ENTITIES_CACHE.pop(domain, None)
 
-    # 清除向量缓存（只清此 domain）
-    try:
-        from retrieval.vector_search import invalidate_cache
-        invalidate_cache(domain)
-    except ImportError:
-        pass
+        # 清除向量缓存（只清此 domain）
+        try:
+            from retrieval.vector_search import invalidate_cache
+            invalidate_cache(domain)
+        except ImportError:
+            pass
 
-    # 切换 KG 过滤（全局——但 KG 查询都在用户端 API 中，不会与管理端冲突）
-    try:
-        from kg.store import set_kg_domain
-        set_kg_domain(domain)
-    except ImportError:
-        pass
+        # 切换 KG 过滤（全局——但 KG 查询都在用户端 API 中，不会与管理端冲突）
+        try:
+            from kg.store import set_kg_domain
+            set_kg_domain(domain)
+        except ImportError:
+            pass
 
-    _active_domain = domain
-    _active_name = f"{domain}问答"
+        _active_domain = domain
+        _active_name = f"{domain}问答"
     return _load_domain_info(domain)
 
 
@@ -189,8 +195,9 @@ def switch_admin_domain(domain: str) -> dict:
     """管理端运行时切换到指定领域。不影响用户端状态。"""
     global _admin_active_domain, _admin_active_name
 
-    _admin_active_domain = domain
-    _admin_active_name = f"{domain}问答"
+    with _state_lock:
+        _admin_active_domain = domain
+        _admin_active_name = f"{domain}问答"
     return _load_domain_info(domain)
 
 # ── 管理后台鉴权 ──────────────────────────────────────────
@@ -213,7 +220,8 @@ def set_retriever(mode: str) -> None:
     global _RETRIEVER_OVERRIDE
     if mode not in ("vector", "keyword", "fusion", "wiki"):
         raise ValueError(f"无效检索方式：{mode}，可选 vector / keyword / fusion / wiki")
-    _RETRIEVER_OVERRIDE = mode
+    with _state_lock:
+        _RETRIEVER_OVERRIDE = mode
 
 
 RETRIEVER = get_retriever()  # 兼容旧代码的直接导入

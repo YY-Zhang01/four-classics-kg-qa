@@ -17,7 +17,10 @@
 """
 from __future__ import annotations
 
+import asyncio
 import json
+import threading
+from collections import deque
 from contextlib import asynccontextmanager
 from datetime import datetime, date
 from pathlib import Path
@@ -37,6 +40,7 @@ from config.settings import (
 )
 from retrieval.retriever import search, count as chunk_count, label as retriever_label
 from core.ask import answer_stream
+from core.sse import sse_text
 from kg.store import count_triples, query_by_entity
 from agent.loop import agent_ask_stream
 from auth.auth import (
@@ -145,35 +149,63 @@ def _write_audit(question: str, hits: list[dict], answer: str,
 #  用户 API：SSE 问答（含审计日志）
 # ═══════════════════════════════════════════════════════════
 
+async def _iter_in_thread(gen):
+    """在后台线程运行同步生成器，经队列桥接为异步迭代，避免阻塞事件循环。"""
+    q: asyncio.Queue = asyncio.Queue()
+
+    def _runner() -> None:
+        try:
+            for item in gen:
+                q.put_nowait((0, item))
+            q.put_nowait((1, None))
+        except Exception as e:  # noqa: BLE001
+            q.put_nowait((2, e))
+
+    threading.Thread(target=_runner, daemon=True).start()
+    while True:
+        kind, val = await q.get()
+        if kind == 0:
+            yield val
+        elif kind == 2:
+            raise val
+        else:
+            break
+
+
 async def _stream(question: str, history: list[dict] | None = None):
     # 多轮：把"他"替换为上一轮提到的人名，让检索更精准
     from retrieval.kg_search import rewrite_query
     search_query = rewrite_query(question, history)
 
     # ── P2 智能路由：先分类问题类型，再走对应策略 ──
-    route_info: dict | None = None
-    try:
-        from router import route as route_question
-        route_result, strategy = route_question(search_query)
-        route_info = {
-            "type": route_result.question_type,
-            "method": route_result.method,
-            "confidence": route_result.confidence,
-            "reason": route_result.reason,
-            "strategy": strategy.name,
-        }
-        # 策略化检索
-        from retrieval.fusion import search_with_strategy
-        hits = search_with_strategy(search_query, strategy=strategy)
-    except ImportError:
-        # 未装 router 模块，回退到常规检索
-        hits = search(search_query)
+    # 路由 + 检索是阻塞操作（DB/embedding），放线程池执行，避免卡住事件循环
+    def _do_search():
+        route_info: dict | None = None
+        try:
+            from router import route as route_question
+            route_result, strategy = route_question(search_query)
+            route_info = {
+                "type": route_result.question_type,
+                "method": route_result.method,
+                "confidence": route_result.confidence,
+                "reason": route_result.reason,
+                "strategy": strategy.name,
+            }
+            # 策略化检索
+            from retrieval.fusion import search_with_strategy
+            hits = search_with_strategy(search_query, strategy=strategy)
+        except ImportError:
+            # 未装 router 模块，回退到常规检索
+            hits = search(search_query)
+        return hits, route_info
+
+    hits, route_info = await asyncio.to_thread(_do_search)
 
     # 通知前端路由类型
     if route_info:
         yield f"data: __ROUTE__{json.dumps(route_info, ensure_ascii=False)}\n\n"
     if not hits:
-        yield f"data: 根据现有资料未找到相关内容。\n\n"
+        yield sse_text("根据现有资料未找到相关内容。")
         _write_audit(question, [], "根据现有资料未找到相关内容。", route_info=route_info)
         return
 
@@ -225,15 +257,16 @@ async def _stream(question: str, history: list[dict] | None = None):
             return f"{h['subject']}→{h['object']}{sc}"
         return f"{h['source']}·{h['chapter'][:25]}{sc}"
     sources = "，".join(_hit_label(h) for h in hits)
-    yield f"data: [检索到 {len(hits)} 条参考资料：{sources}]\n\n"
+    yield sse_text(f"[检索到 {len(hits)} 条参考资料：{sources}]")
 
     collected: list[str] = []
     try:
-        for piece in answer_stream(question, hits, history=history):
+        # 大模型流式生成是阻塞 IO，放后台线程执行，避免阻塞事件循环
+        async for piece in _iter_in_thread(answer_stream(question, hits, history=history)):
             collected.append(piece)
-            yield f"data: {piece}\n\n"
+            yield sse_text(piece)
     except Exception as e:
-        yield f"data: [系统错误：生成回答失败，请检查 Ollama 服务是否运行]\n\n"
+        yield sse_text("[系统错误：生成回答失败，请检查 Ollama 服务是否运行]")
         collected.append(f"[ERROR: {e}]")
     _write_audit(question, hits, "".join(collected), route_info=route_info)
 
@@ -277,9 +310,37 @@ async def agent_ask(request: Request):
 #  用户认证 API
 # ═══════════════════════════════════════════════════════════
 
+# ── 简单内存限流（登录/注册防爆破） ──
+_RATE_WINDOW = 60.0   # 窗口秒数
+_RATE_MAX = 10        # 窗口内最大请求数
+
+_rate_log: dict[str, deque] = {}
+_rate_lock = threading.Lock()
+
+
+def _check_rate(key: str) -> bool:
+    """滑动窗口限流：返回 True 表示放行。"""
+    now = datetime.now().timestamp()
+    with _rate_lock:
+        dq = _rate_log.get(key)
+        if dq is None:
+            dq = deque()
+            _rate_log[key] = dq
+        while dq and now - dq[0] > _RATE_WINDOW:
+            dq.popleft()
+        if len(dq) >= _RATE_MAX:
+            return False
+        dq.append(now)
+        return True
+
+
 @app.post("/api/auth/register")
 async def api_register(request: Request):
     """注册新用户。"""
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate(f"register:{client_ip}"):
+        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
+
     body = await request.json()
     username = body.get("username", "").strip()
     password = body.get("password", "").strip()
@@ -294,6 +355,10 @@ async def api_register(request: Request):
 @app.post("/api/auth/login")
 async def api_login(request: Request):
     """用户登录。"""
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate(f"login:{client_ip}"):
+        raise HTTPException(status_code=429, detail="请求过于频繁，请稍后再试")
+
     body = await request.json()
     username = body.get("username", "").strip()
     password = body.get("password", "").strip()
@@ -316,20 +381,38 @@ def api_me(user: dict = Depends(get_current_user)):
 
 # ── 辅助：读日志 ──
 
-def _read_logs() -> list[dict]:
+def _iter_logs():
+    """逐行惰性读取审计日志（不一次性全量进内存）。"""
     log_file = LOG_DIR / "qa_audit.jsonl"
     if not log_file.exists():
-        return []
-    records = []
-    for line in log_file.read_text(encoding="utf-8").strip().split("\n"):
-        line = line.strip()
-        if not line:
+        return
+    with log_file.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                yield json.loads(line)
+            except json.JSONDecodeError:
+                continue
+
+
+def _count_logs() -> int:
+    """统计日志总条数。"""
+    return sum(1 for _ in _iter_logs())
+
+
+def _tail_logs(limit: int, query: str = "") -> tuple[list[dict], int]:
+    """返回匹配 query 的最后 limit 条（文件顺序=时间正序），及匹配总数。"""
+    buf: deque = deque(maxlen=max(limit, 1))
+    total = 0
+    q = query.lower()
+    for r in _iter_logs():
+        if q and q not in (r.get("question") or "").lower():
             continue
-        try:
-            records.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
-    return records
+        total += 1
+        buf.append(r)
+    return list(buf), total
 
 
 # ── 健康检查 ──
@@ -370,8 +453,9 @@ def public_config():
 
 @app.get("/api/admin/status", dependencies=[Depends(_verify_admin)])
 def admin_status():
-    logs = _read_logs()
-    last_qa = logs[-1]["time"] if logs else None
+    qa_log_count = _count_logs()
+    tail, _ = _tail_logs(1)
+    last_qa = tail[-1]["time"] if tail else None
     uptime = str(datetime.now() - _START_TIME).split(".")[0]
     # 用管理端领域查块数和 KG，不影响用户端
     admin_dom = get_admin_domain()
@@ -392,7 +476,7 @@ def admin_status():
         "wiki_pages": wiki_count(),
         "llm_model": llm_config.model,
         "llm_provider": llm_config.provider,
-        "qa_log_count": len(logs),
+        "qa_log_count": qa_log_count,
         "last_qa_time": last_qa,
         # P4 审核统计
         "review_pending": _get_review_pending(admin_dom),
@@ -436,18 +520,24 @@ def _get_p5_status() -> dict:
 
 @app.get("/api/admin/stats", dependencies=[Depends(_verify_admin)])
 def admin_stats():
-    """问答统计：总量、今日、命中率、热门问题。"""
-    logs = _read_logs()
+    """问答统计：总量、今日、命中率、热门问题（流式聚合，不全量进内存）。"""
     today = date.today().isoformat()
-    today_logs = [l for l in logs if (l.get("time") or "").startswith(today)]
-    total = len(logs)
-    hit_count = sum(1 for l in logs if l.get("hit_ids"))
-    today_total = len(today_logs)
-    today_hit = sum(1 for l in today_logs if l.get("hit_ids"))
-
-    # 热门问题 top 5（按出现次数，简化：完全匹配）
+    total = hit_count = today_total = today_hit = 0
     from collections import Counter
-    q_counter = Counter(l.get("question", "") for l in logs if l.get("question"))
+    q_counter: Counter = Counter()
+
+    for l in _iter_logs():
+        total += 1
+        if l.get("hit_ids"):
+            hit_count += 1
+        if (l.get("time") or "").startswith(today):
+            today_total += 1
+            if l.get("hit_ids"):
+                today_hit += 1
+        q = l.get("question")
+        if q:
+            q_counter[q] += 1
+
     top_questions = [{"q": q, "n": n} for q, n in q_counter.most_common(5) if n > 1]
 
     return {
@@ -468,14 +558,10 @@ def admin_logs(
     offset: int = Query(0, ge=0),
     q: str = Query("", description="搜索问题关键词"),
 ):
-    """返回问答日志，支持搜索和分页。"""
-    records = _read_logs()
-    if q:
-        records = [r for r in records if q.lower() in (r.get("question") or "").lower()]
-    total = len(records)
-    # 按时间倒序
-    records.reverse()
-    page = records[offset : offset + limit]
+    """返回问答日志，支持搜索和分页（尾部读取，不全量进内存）。"""
+    matched, total = _tail_logs(offset + limit, q)
+    matched.reverse()  # 文件顺序是时间正序，翻转为倒序
+    page = matched[offset : offset + limit]
     return {"total": total, "logs": page}
 
 
@@ -487,11 +573,10 @@ def admin_logs_export():
     import csv
     import io
 
-    records = _read_logs()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["时间", "问题", "回答", "命中来源"])
-    for r in records:
+    for r in _iter_logs():
         sources = ", ".join(r.get("hit_sources", r.get("hit_ids", [])))
         writer.writerow([
             r.get("time", ""),
